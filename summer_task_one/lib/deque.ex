@@ -1,5 +1,5 @@
 defmodule Deque do
-  defstruct front: [], back: []
+  defstruct front: [], back: [], size_front: 0, size_back: 0
 
   def new() do
     %Deque{}
@@ -9,17 +9,17 @@ defmodule Deque do
   def size(%Deque{front: front, back: []}), do: length(front)
   def size(%Deque{front: front, back: back}), do: length(front) + length(back)
 
-  def push_back(deque = %Deque{front: _front, back: back}, element), do: %{deque | back: [element | back]}
+  def push_back(deque = %Deque{front: _front, back: back, size_back: size}, element), do: %{deque | back: [element | back], size_back: size + 1}
 
-  def push_front(deque = %Deque{front: front, back: _back}, element), do: %{deque | front: [element | front]}
+  def push_front(deque = %Deque{front: front, back: _back, size_front: size}, element), do: %{deque | front: [element | front], size_front: size + 1}
 
   def pop_back(deque = %Deque{front: [], back: []}), do: deque
-  def pop_back(deque = %Deque{front: front, back: []}), do: remove_last_element(front, deque)
-  def pop_back(deque = %Deque{front: _front, back: [_head | tail]}), do: %{deque | back: tail}
+  def pop_back(deque = %Deque{front: front, back: [], size_front: size}), do: remove_back_element(front, deque, size)
+  def pop_back(deque = %Deque{front: _front, back: [_head | tail], size_back: size}), do: %{deque | back: tail, size_back: size - 1}
 
   def pop_front(deque = %Deque{front: [], back: []}), do: deque
-  def pop_front(deque = %Deque{front: [], back: back}), do: remove_front_element(back, deque)
-  def pop_front(deque = %Deque{front: [_head | tail], back: _back}), do: %{deque | front: tail}
+  def pop_front(deque = %Deque{front: [], back: back, size_back: size}), do: remove_front_element(back, deque, size)
+  def pop_front(deque = %Deque{front: [_head | tail], back: _back, size_front: size}), do: %{deque | front: tail, size_front: size - 1}
 
   def last(%Deque{front: [], back: []}), do: nil
   def last(%Deque{front: front, back: []}), do: get_element(front)
@@ -30,35 +30,35 @@ defmodule Deque do
   def first(%Deque{front: [head | _tail], back: _back}), do: head
 
   def access_at(%Deque{front: [], back: []}, index) when is_number(index), do: nil
-  def access_at(%Deque{front: front, back: []}, index) when is_number(index) and length(front) - 1 < index, do: nil
-  def access_at(%Deque{front: [], back: back}, index) when is_number(index) and length(back) - 1 < index, do: nil
-  def access_at(%Deque{front: front, back: back}, index) when is_number(index) and (length(front) + length(back) - 1) < index, do: nil
+  def access_at(%Deque{front: _front, back: [], size_front: size}, index) when is_number(index) and size - 1 < index, do: nil
+  def access_at(%Deque{front: [], back: _back, size_back: size}, index) when is_number(index) and size - 1 < index, do: nil
+  def access_at(%Deque{front: _front, back: _back, size_front: size_front, size_back: size_back}, index) when is_number(index) and (size_front + size_back - 1) < index, do: nil
   def access_at(%Deque{front: front, back: back}, index) when is_number(index), do: get_element_at(front ++ Enum.reverse(back), index)
 
   def assign_at(%Deque{front: [], back: []}, index, _element) when is_number(index), do: nil
-  def assign_at(%Deque{front: front, back: []}, index, _element) when is_number(index) and length(front) - 1 < index, do: nil
-  def assign_at(%Deque{front: [], back: back}, index, _element) when is_number(index) and length(back) - 1 < index, do: nil
-  def assign_at(%Deque{front: front, back: back}, index, _element) when is_number(index) and (length(front) + length(back) - 1) < index, do: nil
-  def assign_at(deque = %Deque{front: front, back: back}, index, element) when is_number(index) do
+  def assign_at(%Deque{back: [], size_front: size}, index, _element) when is_number(index) and size - 1 < index, do: nil
+  def assign_at(%Deque{front: [], size_back: size}, index, _element) when is_number(index) and size - 1 < index, do: nil
+  def assign_at(%Deque{size_back: size_back, size_front: size_front}, index, _element) when is_number(index) and (size_front + size_back - 1) < index, do: nil
+  def assign_at(deque = %Deque{front: front, back: back, size_front: size_front, size_back: size_back}, index, element) when is_number(index) do
     cond do
-      index <= length(front) - 1 ->
+      index <= size_front - 1 ->
         front = assign_element_at_front(front, index, element, [])
         %{deque | front: front}
-      index > length(front) - 1 ->
-        back = assign_element_at_back(back, abs(index - length(front) - (length(back) - 1)), element, [])
+      index > size_front - 1 ->
+        back = assign_element_at_back(back, abs(index - size_front - (size_back - 1)), element, [])
         %{deque | back: back}
     end
   end
   def to_list(%Deque{front: front, back: back}), do: front ++ Enum.reverse(back)
 
-  defp remove_last_element([_head | tail], _deque) when length(tail) == 0, do: %Deque{}
-  defp remove_last_element(list, deque) do
+  defp remove_back_element(_list, _deque, size) when size - 1 == 0, do: %Deque{}
+  defp remove_back_element(list, deque, _size) do
     [_head | tail] = Enum.reverse(list)
     %{deque | front: [], back: tail}
   end
 
-  defp remove_front_element([_head | tail], _deque) when length(tail) == 0, do: %Deque{}
-  defp remove_front_element(list, deque) do
+  defp remove_front_element(_list, _deque, size) when size - 1 == 0, do: %Deque{}
+  defp remove_front_element(list, deque, _size) do
     [_head | tail] = Enum.reverse(list)
     %{deque | back: [], front: tail}
   end

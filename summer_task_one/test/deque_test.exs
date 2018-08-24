@@ -140,9 +140,9 @@ defmodule DequeTest do
 
   test "assign element" do
     # [1, 2, 3, 4]
-    deque1 = %Deque{front: [1, 2], back: [4, 3]}
+    deque1 = %Deque{front: [1, 2], back: [4, 3], size_front: 2, size_back: 2}
     # [1, 2, 3, 5, 6, 7, 8]
-    deque2 = %Deque{front: [1, 2, 3], back: [8, 7, 6, 5]}
+    deque2 = %Deque{front: [1, 2, 3], back: [8, 7, 6, 5], size_front: 3, size_back: 4}
 
     assigned_element1 = Deque.assign_at(deque1, 2, 5) |> Deque.access_at(2)
     assigned_element2 = Deque.assign_at(deque2, 6, 10) |> Deque.access_at(6)
