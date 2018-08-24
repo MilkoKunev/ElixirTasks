@@ -21,6 +21,16 @@ defmodule Sequence do
       {old_state, new_state} = func.(state)
       {old_state, %{sequence | state: new_state, limit_count: n - 1}}
   end
+  def generate(%Sequence{state: nil, other_seq: true, other_seq_data: %{state: nil}}), do: nil
+  def generate(sequence = %Sequence{state: nil, other_seq: true, other_seq_data: other_seq_data = %{state: state, generator: func}}) do
+    {old_state, new_state} = func.(state)
+    other_seq_data = %{other_seq_data | state: new_state}
+    {old_state, %{sequence | other_seq_data: other_seq_data}}
+  end
+  def generate(sequence = %Sequence{state: state, generator: func, other_seq: true}) do
+    {old_state, new_state} = func.(state)
+    {old_state, %{sequence | state: new_state}}
+  end
   def generate(sequence = %Sequence{state: nil, generator: func, cycle: true, first_state: first_state}) when is_function(func) do
     {old_state, new_state} = func.(first_state)
     {old_state, %{sequence | state: new_state}}
@@ -68,9 +78,10 @@ defmodule Sequence do
   def repeat(sequence = %Sequence{state: state, generator: func}, n)
     when is_function(func) and is_number(n) and n >= 0, do: %{clear_sequence(sequence) | first_state: state, repeat: true, repeat_count: n}
 
-  def concatenate(sequence_one = %{state: state_one, first_state: nil}, sequence_two = %{state: state_two, first_state: nil}) do
-    sequence_one = %{clear_sequence(sequence_one) | first_state: state_one}
-    sequence_two = %{clear_sequence(sequence_two) | first_state: state_two}
+  def concatenate(sequence_one = %{generator: func1}, sequence_two = %{generator: func2})
+    when is_function(func1) and is_function(func2) do
+    sequence_one = clear_sequence(sequence_one)
+    sequence_two = clear_sequence(sequence_two)
     %{sequence_one | other_seq: true, other_seq_data: sequence_two}
   end
 
