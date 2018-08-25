@@ -75,4 +75,35 @@ defmodule Deque do
   defp assign_element_at_back([_head | tail], 0, element, acc), do: Enum.reverse(acc) ++ [element | tail]
   defp assign_element_at_back([head | tail], index, element, acc), do: assign_element_at_back(tail, index - 1, element, [head | acc])
 
+  defimpl Enumerable do
+    def count(%Deque{size_front: size_front, size_back: size_back}) do
+      {:ok, size_front + size_back}
+    end
+
+    def member?(%Deque{front: [], back: []}, _element), do:  {:ok, false}
+    def member?(%Deque{front: [], back: back}, element), do: {:ok, Enum.member?(back, element)}
+    def member?(%Deque{front: front, back: []}, element), do: {:ok, Enum.member?(front, element)}
+    def member?(%Deque{front: front, back: back}, element), do: {:ok, Enum.member?(front, element) || Enum.member?(back, element)}
+
+    def reduce(_deque, {:halt, acc}, _fun), do: {:halted, acc}
+    def reduce(deque, {:suspended, acc}, fun), do: {:suspend, acc, &reduce(deque, &1, fun)}
+    def reduce(%Deque{front: [], back: []}, {:cont, acc}, _fun), do: {:done, acc}
+    def reduce(%Deque{front: [head | tail], back: []}, {:cont, acc}, fun), do: reduce(%Deque{front: tail}, fun.(head, acc), fun)
+    def reduce(%Deque{front: [], back: [head | tail]}, {:cont, acc}, fun), do: reduce(%Deque{back: tail}, fun.(head, acc), fun)
+    def reduce(%Deque{front: [head | tail]}, {:cont, acc}, fun), do: reduce(%Deque{front: tail}, fun.(head, acc), fun)
+
+    # TODO: add slice
+  end
+
+  defimpl Collectable do
+    def into(original) do
+      {original, fn
+        (deque, {:cont, elem}) -> Deque.push_front(deque, elem)
+        (deque, :done) -> deque
+        (_set, :halt) -> :ok
+      end}
+    end
+  end
+
+
 end
