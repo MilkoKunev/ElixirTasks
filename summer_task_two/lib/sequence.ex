@@ -103,4 +103,37 @@ defmodule Sequence do
   defp clear_sequence(sequence) do
     %{sequence | limit: false, cycle: false, first_state: nil, repeat: false, other_seq: false, other_seq_data: nil, repeat_count: nil, limit_count: nil}
   end
+
+  defimpl Enumerable do
+    def count(sequence) do
+      {:ok, _count(sequence, 0)}
+    end
+
+    def member?(sequence, element) do
+      {:ok, _member?(sequence, element, false)}
+    end
+
+    def reduce(_sequence, {:halt, acc}, _fun), do: {:halted, acc}
+    def reduce(sequence, {:suspend, acc}, fun), do: {:suspended, acc, &reduce(sequence, &1, fun)}
+    def reduce(%Sequence{limit: true, limit_count: 0}, {:cont, acc}, _fun), do: {:done, acc}
+    def reduce(%Sequence{state: nil, repeat: true, repeat_count: 0}, {:cont, acc}, _fun), do: {:done, acc}
+    def reduce(%Sequence{state: nil, other_seq: true, other_seq_data: %{state: nil}}, {:cont, acc}, _fun), do: {:done, acc}
+    def reduce(sequence, {:cont, acc}, fun) do
+      {old_element, sequence} = Sequence.generate(sequence)
+      reduce(sequence, fun.(old_element, acc), fun)
+    end
+
+    defp _count(%Sequence{limit: true, limit_count: n}, _size), do: n
+    defp _count(%Sequence{state: nil, repeat: true, repeat_count: n}, size), do: n * size
+    defp _count(%Sequence{state: nil, other_seq: true, other_seq_data: %{state: nil}}, size), do: size
+    defp _count(%Sequence{state: nil}, size), do: size
+    defp _count(sequence, size), do: _count(Sequence.generate_next(sequence), size + 1)
+
+    defp _member?(%Sequence{state: nil}, _element, member?), do: member?
+    defp _member?(_seq, _element, true), do: true
+    defp _member?(sequence, element, _member?) do
+      {generated_element, sequence} = Sequence.generate(sequence)
+      _member?(sequence, element, element == generated_element)
+    end
+  end
 end
