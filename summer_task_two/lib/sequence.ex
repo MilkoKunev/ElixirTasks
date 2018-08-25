@@ -15,6 +15,11 @@ defmodule Sequence do
   )
 
   def generate(%Sequence{generator: func, limit: true, limit_count: 0}) when is_function(func), do: nil
+  def generate(sequence = %Sequence{state: nil, generator: func1, limit: true, other_seq: true, limit_count: n, other_seq_data: other_seq_data = %{state: state, generator: func2}}) when is_function(func1) do
+    {old_state, new_state} = func2.(state)
+    {old_state, %{sequence | limit_counts: n - 1, other_seq_data: %{other_seq_data | state: new_state}}}
+  end
+  def generate(%Sequence{state: nil, generator: func1, limit: true, other_seq: true, other_seq_data: %{state: nil}}) when is_function(func1), do: nil
   def generate(%Sequence{state: nil, generator: func, limit: true}) when is_function(func), do: nil
   def generate(sequence = %Sequence{state: state, generator: func, limit: true, limit_count: n})
     when is_function(func) do
